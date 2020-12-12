@@ -22,4 +22,6 @@ delete from ocds.procurement where data_id in (
 select a.data_id from ocds.procurement a
 join ocds.procurement b on a.ocid = b.ocid and a.id < b.id);
 
+refresh materialized view ocds.unique_suppliers;
+
  -- delete from ocds.data;

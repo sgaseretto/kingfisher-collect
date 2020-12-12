@@ -156,3 +156,34 @@ create table if not exists ocds.award_items
     data_id                    bigint
 );
 
+create or replace function ocds.get_promedio_before_covid(presentacion text, moneda text, catalogo_n5 text, unidad text)
+    RETURNS integer AS $$
+        BEGIN
+    return
+
+    avg(ai.unit_price) as precio_unitario_promedio_antes_pandemia
+    from ocds.award_items as ai
+    join ocds.procurement  as t on t.ocid = ai.ocid
+    where ai.classification_id = catalogo_n5 and ai.attributes->1->>'value' = presentacion
+    and ai.unit_name = unidad and ai.unit_price_currency = moneda
+    and t.tender_date_published < '2020-03-01';
+
+            END;
+$$ LANGUAGE plpgsql;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS ocds.unique_suppliers AS
+(
+SELECT DISTINCT parties.name                                  AS name,
+                replace(party_id, 'PY-RUC-'::text, ''::text) AS ruc,
+                regexp_replace(parties.contact_point_telephone, '[^0-9]+'::text,
+                               ''::text, 'g'::text)                                      AS telephone,
+                parties.contact_point_name         AS contact_point,
+                parties.address_country       AS pais,
+                parties.address_region     AS departamento,
+                parties.address_locality   AS ciudad,
+                parties.address_street     AS direccion
+FROM ocds.parties as parties
+WHERE NOT parties.roles ? 'buyer'::text
+  AND NOT parties.roles ? 'procuringEntity'::text
+  AND NOT parties.roles ? 'payer'::text
+  AND parties.party_id ~~ 'PY-RUC-%'::text );
