@@ -34,6 +34,8 @@ class ParaguayDNCPBaseSpider(SimpleSpider):
         'CONCURRENT_REQUESTS': 1,
     }
 
+    schema = 'ocds'
+
     @classmethod
     def from_crawler(cls, crawler, *args, **kwargs):
         spider = super().from_crawler(crawler, *args, **kwargs)
@@ -47,8 +49,8 @@ class ParaguayDNCPBaseSpider(SimpleSpider):
 
     def start_requests(self):
         url = f'{self.base_url}/search/processes?tipo_fecha=fecha_release&' \
-              f'fecha_desde={self.from_date.strftime(self.date_format)}&' \
-              f'fecha_hasta={self.until_date.strftime(self.date_format)}'
+              f'fecha_desde={self.from_date.strftime(self.date_format)}-04:00&' \
+              f'fecha_hasta={self.until_date.strftime(self.date_format)}-04:00'
 
         yield self.build_request(
             url,

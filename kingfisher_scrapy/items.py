@@ -35,3 +35,9 @@ class FileError(KingfisherItem):
 
 class PluckedItem(scrapy.Item):
     value = scrapy.Field()
+
+
+class ReleaseDataItem(scrapy.Item):
+    data = scrapy.Field()
+    release_id = scrapy.Field()
+    ocid = scrapy.Field()

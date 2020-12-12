@@ -1,8 +1,10 @@
+dataset
 flattentool
 ijson>=3.1.1
 jsonpointer
 jsonref
 jsonschema
+psycopg2
 ocdsmerge
 rarfile
 rfc3987
@@ -10,5 +12,6 @@ scrapyd
 Scrapy>=2
 scrapyd-client
 sentry-sdk
+schedule
 treq
 twisted

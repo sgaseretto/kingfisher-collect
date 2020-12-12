@@ -70,22 +70,33 @@ CONCURRENT_REQUESTS_PER_DOMAIN = 2
 #    'scrapy.extensions.telnet.TelnetConsole': None,
 #}
 EXTENSIONS = {
-    'kingfisher_scrapy.extensions.SentryLogging': -1,
-    'kingfisher_scrapy.extensions.KingfisherPluck': 1,
+   # 'kingfisher_scrapy.extensions.SentryLogging': -1,
+   # 'kingfisher_scrapy.extensions.KingfisherPluck': 1,
     # `KingfisherFilesStore` must run before `KingfisherProcessAPI`, because the file needs to be written before the
     # request is sent to Kingfisher Process.
-    'kingfisher_scrapy.extensions.KingfisherFilesStore': 100,
-    'kingfisher_scrapy.extensions.KingfisherProcessAPI': 500,
-    'kingfisher_scrapy.extensions.KingfisherItemCount': 600,
+   # 'kingfisher_scrapy.extensions.KingfisherFilesStore': 100,
+   # 'kingfisher_scrapy.extensions.KingfisherProcessAPI': 500,
+   # 'kingfisher_scrapy.extensions.KingfisherItemCount': 600,
 }
 
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-   'kingfisher_scrapy.pipelines.Sample': 200,
-   'kingfisher_scrapy.pipelines.Unflatten': 300,
-   'kingfisher_scrapy.pipelines.Validate': 301,
-   'kingfisher_scrapy.pipelines.Pluck': 302,
+    'kingfisher_scrapy.pipelines.PgPipeline': 300,
+}
+
+from sqlalchemy.dialects.postgresql import JSONB
+
+PG_PIPELINE = {
+     'connection': f'postgresql://{os.getenv("POSTGRES_USER", "empatia")}:{os.getenv("POSTGRES_PASSWORD", "empatia")}@{os.getenv("POSTGRES_HOST", "localhost")}/{os.getenv("POSTGRES_DB", "empatia")}',
+   # 'connection': f'postgresql://{os.getenv("POSTGRES_USER", "empatia")}:{os.getenv("POSTGRES_PASSWORD", "empatia")}@db/empatia',
+    'table_name': 'data',
+    'pkey': 'release_id',
+    'ignore_identical': ['release_id', 'ocid'],
+    'types': {
+        'data': JSONB
+    },
+    'onconflict': 'upsert'
 }
 
 
@@ -148,3 +159,5 @@ HTTPPROXY_ENABLED = False
 if os.getenv('SCRAPY_PROJECT') is None:
     # https://docs.scrapy.org/en/latest/topics/commands.html#commands-module
     COMMANDS_MODULE = 'kingfisher_scrapy.commands'
+
+EMPATIA_ETL_SCHEDULER_HOURS_PARAGUAY = os.getenv('EMPATIA_ETL_SCHEDULER_HOURS_PARAGUAY', 6)

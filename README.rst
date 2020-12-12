@@ -7,3 +7,13 @@ Kingfisher Collect is a tool for downloading OCDS data and storing it on disk an
 .. |Build Status| image:: https://github.com/open-contracting/kingfisher-collect/workflows/CI/badge.svg
 .. |Coverage Status| image:: https://coveralls.io/repos/github/open-contracting/kingfisher-collect/badge.svg?branch=master
    :target: https://coveralls.io/github/open-contracting/kingfisher-collect?branch=master
+
+
+### Levantar con docker
+
+- Hacer una copia del archivo .env_sample y llamarlo .env, seteando los valores de las variables de entorno
+- docker-compose build
+- docker-compose up -d
+
+La primera vez todas las tablas serán creadas y los datos de Paraguay será poblados desde el 2010 hasta la fecha de
+ejecución. Luego quedará el scheduler configurado actualizando los datos cada EMPATIA_ETL_SCHEDULER_HOURS_PARAGUAY horas.

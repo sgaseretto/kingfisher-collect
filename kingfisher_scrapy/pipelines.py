@@ -5,6 +5,7 @@ import os
 import pkgutil
 import tempfile
 
+import dataset
 import jsonpointer
 from flattentool import unflatten
 from jsonschema import FormatChecker
@@ -12,11 +13,82 @@ from jsonschema.validators import Draft4Validator, RefResolver
 from ocdsmerge.util import get_release_schema_url, get_tags
 from scrapy.exceptions import DropItem
 
-from kingfisher_scrapy.items import File, FileItem, PluckedItem
+from kingfisher_scrapy.items import File, FileItem, PluckedItem, ReleaseDataItem
+from transform.transform import transform
 
 
 def _json_loads(basename):
     return json.loads(pkgutil.get_data('kingfisher_scrapy', f'item_schema/{basename}.json'))
+
+
+class PgPipeline(object):
+    def __init__(self, **kwargs):
+        self.args = kwargs
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        args = crawler.settings.get('PG_PIPELINE', {})
+        return cls(**args)
+
+    def close_spider(self, spider):
+        transform(self.db, spider.schema)
+
+    def open_spider(self, spider):
+        if self.args.get('connection'):
+            self.db = dataset.connect(self.args.get('connection'), schema=spider.schema)
+            self.table = self.db[self.args.get('table_name')]
+            self.pkey = self.args.get('pkey')
+            self.types = self.args.get('types', {})
+            self.ignore_identical = self.args.get('ignore_identical')
+            self.table.create_index([self.pkey])
+            self.table.create_index(self.ignore_identical)
+            self.onconflict = self.args.get('onconflict', 'ignore')
+
+    def process_item(self, item, spider):
+        if not isinstance(item, File):
+            return item
+        for release in _get_releases_data(item):
+            if self.onconflict == 'ignore':
+                self.table.insert_ignore(
+                    release, self.ignore_identical, types=self.types)
+            elif self.onconflict == 'upsert':
+                self.table.upsert(
+                    release, self.ignore_identical, types=self.types)
+            elif self.onconflict == 'non-null':
+                row, res = self.table._upsert_pre_check(
+                    release, self.ignore_identical, None)
+                selected = release
+                if res is not None:
+                    # remove keys with none value
+                    selected = dict((k, v) for k, v in release.iteritems() if v)
+                    self.table.upsert(
+                        selected, self.ignore_identical, types=self.types)
+                else:
+                    self.table.insert(
+                        selected, self.ignore_identical, types=self.types)
+            else:
+                raise Exception("no such strategy: %s" % (self.onconflict))
+        return item
+
+
+def _get_releases_data(item):
+    releases = []
+    data = json.loads(item['data'])
+    if item['data_type'] == 'record_package':
+        for record in data['records']:
+            releases.append(ReleaseDataItem({
+                'data': record['compiledRelease'],
+                'release_id': record['compiledRelease']['id'],
+                'ocid': record['compiledRelease']['ocid']
+            }))
+    if item['data_type'] == 'release_package':
+        for release in data['releases']:
+            releases.append(ReleaseDataItem({
+                'data': release,
+                'release_id': release['id'],
+                'ocid': release['ocid']
+            }))
+    return releases
 
 
 class Validate:

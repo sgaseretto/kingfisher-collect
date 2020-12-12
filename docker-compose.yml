@@ -1,0 +1,10 @@
+version: "3"
+services:
+  etl:
+    build: .
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB
+      - TZ
+      - KINGFISHER_PARAGUAY_DNCP_REQUEST_TOKEN
