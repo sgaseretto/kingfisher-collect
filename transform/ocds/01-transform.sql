@@ -1,7 +1,7 @@
 INSERT INTO ocds.procurement (release_date, ocid, data_id, tender_id, characteristics, tender_amount, budget_amount, budget_currency, tender_currency,
                                   tender_date_published, planning_estimated_date, tender_enquiryperiod_start_date, tender_enquiryperiod_end_date,
                                   tender_tenderperiod_end_date, tender_tenderperiod_start_date, tender_procurementmethoddetails, buyer_name, buyer_id,
-                                  tender_bidopening_date, tender_awardcriteria_details, tender_status,
+                                  tender_bidopening_date, tender_awardcriteria_details, tender_status, tender_status_details,
                                   tender_title, tender_mainprocurementcategorydetails, tender_numberoftenderers, analyzed, number_of_awards,
                                   framework_agreement, electronic_auction, budget, documents, tender_numberofenquiries, url)   (
     SELECT
@@ -26,7 +26,8 @@ INSERT INTO ocds.procurement (release_date, ocid, data_id, tender_id, characteri
           (data->'buyer'->>'id') as buyer_id,
           (data->'tender'->'bidOpening'->>'date')::timestamp as tender_bidopening_date,
           data->'tender'->>'awardCriteriaDetails' as tender_awardcriteria_details,
-                   data->'tender'->>'statusDetails' as tender_status,
+                   data->'tender'->>'status' as tender_status,
+                                           data->'tender'->>'statusDetails' as tender_status_details,
                            data->'tender'->>'title' as tender_title,
            data->'tender'->>'mainProcurementCategoryDetails' as tender_mainprocurementCategorydetails,
            data->'tender'->>'numberOfTenderers' as tender_numberoftenderers,
@@ -81,7 +82,7 @@ INSERT INTO ocds.parties (ocid, data_id, party_id, name, contact_point_email, co
 
 
 INSERT INTO ocds.award (ocid, data_id, award_id, date, amount, currency,
-                            status, supplier_id, supplier_name, documents, buyer_id, buyer_name)  (
+                            status, status_details, supplier_id, supplier_name, documents, buyer_id, buyer_name)  (
 
     select distinct r.ocid,
                     r.id,
@@ -89,7 +90,8 @@ INSERT INTO ocds.award (ocid, data_id, award_id, date, amount, currency,
            (a->>'date')::timestamp as date,
            (a->'value'->>'amount')::numeric as amount,
            a->'value'->>'currency' as currency,
-           a->>'statusDetails' as status,
+           a->>'status' as status,
+                               a->>'statusDetails' as status_details,
            a->'suppliers'->0->>'id' as supplier_id,
            a->'suppliers'->0->>'name' as supplier_name,
            a->'documents' as documents,
@@ -101,7 +103,7 @@ INSERT INTO ocds.award (ocid, data_id, award_id, date, amount, currency,
 
 );
 
-INSERT INTO ocds.contract (ocid, data_id, contract_id, award_id, date_signed, amount, currency, status,
+INSERT INTO ocds.contract (ocid, data_id, contract_id, award_id, date_signed, amount, currency, status, status_details,
                                duration_in_days, start_date, end_date, budget, documents)  (
 
     select distinct r.ocid,
@@ -111,7 +113,8 @@ INSERT INTO ocds.contract (ocid, data_id, contract_id, award_id, date_signed, am
            (a->>'dateSigned')::timestamp as date_signed,
            (a->'value'->>'amount')::numeric as amount,
            a->'value'->>'currency' as currency,
-           a->>'statusDetails' as status,
+           a->>'status' as status,
+                               a->>'statusDetails' as status_details,
            (a->'period'->>'durationInDays')::numeric as duration_in_days,
            (a->'period'->>'startDate')::timestamp as start_date,
            (a->'period'->>'endDate')::timestamp as end_date,
