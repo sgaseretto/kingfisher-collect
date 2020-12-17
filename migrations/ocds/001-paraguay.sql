@@ -176,4 +176,4 @@ WHERE NOT parties.roles ? 'buyer'::text
   AND NOT parties.roles ? 'payer'::text
   AND parties.party_id ~~ 'PY-RUC-%'::text );
 
-alter table ocds.procurement add column if not exists tender_procurement text;
+alter table ocds.procurement add column if not exists tender_procurementmethod text;

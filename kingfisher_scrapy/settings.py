@@ -96,7 +96,7 @@ PG_PIPELINE = {
     'types': {
         'data': JSONB
     },
-    'onconflict': 'upsert'
+    'onconflict': 'ignore'
 }
 
 

@@ -49,8 +49,8 @@ class PgPipeline(object):
             return item
         for release in _get_releases_data(item):
             if self.onconflict == 'ignore':
-                self.table.insert_ignore(
-                    release, self.ignore_identical, types=self.types)
+                self.table.insert(
+                    release, types=self.types)
             elif self.onconflict == 'upsert':
                 self.table.upsert(
                     release, self.ignore_identical, types=self.types)
