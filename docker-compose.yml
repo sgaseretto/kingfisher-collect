@@ -10,3 +10,48 @@ services:
       - POSTGRES_HOST
       - EMPATIA_ETL_SCHEDULER_HOURS_PARAGUAY
       - KINGFISHER_PARAGUAY_DNCP_REQUEST_TOKEN
+    networks:
+      - pyocds
+    depends_on: 
+      - postgres
+
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    restart: always
+    networks:
+      - pyocds
+    environment:
+      # - 'POSTGRES_USER=empatia'
+      # - 'POSTGRES_PASSWORD=empatia'
+      # - 'POSTGRES_DB=empatia'
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB
+    ports:
+      - 6000:5432
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+  
+  pgadmin:
+    container_name: pgadmin
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+    volumes:
+       - pgadmin-data:/root/.pgadmin
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    networks:
+      - pyocds
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+    driver: local
+  pgadmin-data:
+    driver: local
+networks:
+  pyocds:
+    driver: bridge
