@@ -114,7 +114,7 @@ create table if not exists ocds.contract
     end_date         timestamp,
     budget           jsonb,
     documents        jsonb,
-    amendments       jsonb,
+--     amendments       jsonb,
     id               bigserial not null
         constraint contract_pk
             primary key,
