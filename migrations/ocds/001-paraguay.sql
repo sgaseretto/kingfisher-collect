@@ -114,6 +114,7 @@ create table if not exists ocds.contract
     end_date         timestamp,
     budget           jsonb,
     documents        jsonb,
+    amendments       jsonb,
     id               bigserial not null
         constraint contract_pk
             primary key,
@@ -177,3 +178,75 @@ WHERE NOT parties.roles ? 'buyer'::text
   AND parties.party_id ~~ 'PY-RUC-%'::text );
 
 alter table ocds.procurement add column if not exists tender_procurementmethod text;
+
+-- Creacion de una vista de objetos de gastos unicos ordenados ascendentemente
+CREATE OR REPLACE VIEW ocds.view_objeto_gasto AS
+    SELECT distinct(g.codigo_objeto_gasto), g.descripcion_objeto_gasto
+    FROM hacienda.gasto g
+    ORDER BY g.codigo_objeto_gasto ASC;
+
+-- vista de adjudicaciones
+CREATE OR REPLACE VIEW ocds.view_adjudicaciones AS
+    SELECT
+       p.data_id as data_id,
+       p.budget::json->0->'classifications'->>'anio' as anho,
+       p.budget::json->0->'classifications'->>'nivel' as nivel,
+       e.descripcion_nivel as descripcion_nivel,
+       p.budget::json->0->'classifications'->>'entidad' as entidad,
+       e.descripcion as descripcion_entidad,
+       og.codigo_objeto_gasto as codigo_objeto_gasto,
+       og.descripcion_objeto_gasto as descripcion_objeto_gasto,
+       a.currency as moneda,
+       p.tender_procurementmethoddetails as modalidad,
+       p.tender_mainprocurementcategorydetails as categoria,
+       a.status as estado,
+       a.amount as monto,
+--        c.amendments::json->0->'amendments'->>'amendsAmount'->>'amount' as monto_ampliacion,
+--        c.amendments::json->0->'amendments'->>'amendsAmount'->>'currency' as moneda_ampliacion,
+       p.tender_date_published as fecha_publicacion,
+       p.budget::json->0->'classifications'->>'objeto_gasto' as objeto_llamado,
+       p.electronic_auction as subasta_electronica,
+       CASE WHEN p.tender_id like '%plurianual%' THEN true ELSE false END as plurianual,
+       a.award_id
+    FROM ocds.procurement p
+    LEFT JOIN ocds.award a ON p.data_id = a.data_id
+    LEFT JOIN hacienda.entidad e ON e.nivel::text = p.budget::json->0->'classifications'->>'nivel'
+                                        AND e.codigo::text = p.budget::json->0->'classifications'->>'entidad'
+    INNER JOIN ocds.view_objeto_gasto og ON og.codigo_objeto_gasto::text = p.budget::json->0->'classifications'->>'objeto_gasto'
+    INNER JOIN ocds.contract c ON c.data_id = p.data_id
+    WHERE e.anio = 2020;
+
+-- vista para planificaciones
+CREATE OR REPLACE VIEW ocds.view_planificaciones AS
+    SELECT
+       p.data_id as data_id,
+       p.budget::json->0->'classifications'->>'anio' as anho,
+       p.budget::json->0->'classifications'->>'nivel' as nivel,
+       e.descripcion_nivel as descripcion_nivel,
+       p.budget::json->0->'classifications'->>'entidad' as entidad,
+       e.descripcion as descripcion_entidad,
+       a.currency as moneda,
+       p.tender_procurementmethoddetails as modalidad,
+       p.tender_mainprocurementcategorydetails as categoria,
+       p.tender_status as estado,
+       p.tender_status_details as descripcion_estado,
+       c.date_signed as fecha_implementacion,
+       date_part('month', c.date_signed) as mes_implementacion,       -- falta mes de ejecucion
+       CASE WHEN p.tender_id like '%plurianual%' THEN true ELSE false END as plurianual,
+       a.amount as monto,
+       og.codigo_objeto_gasto as codigo_objeto_gasto,
+       og.descripcion_objeto_gasto as descripcion_objeto_gasto,
+       p.budget::json->0->'classifications'->>'objeto_gasto' as objeto_llamado,
+       date_part('month', p.tender_date_published) as mes_publicacion,
+--        p.tender_date_published as fecha_publicacion,
+       p.electronic_auction as subasta_electronica,
+       p.planning_estimated_date as fecha_planificacion,
+       a.award_id
+    FROM ocds.procurement p
+    LEFT JOIN ocds.award a ON a.data_id = p.data_id
+    LEFT JOIN hacienda.entidad e ON e.nivel::text = p.budget::json->0->'classifications'->>'nivel'
+                                        AND e.codigo::text = p.budget::json->0->'classifications'->>'entidad'
+    INNER JOIN ocds.view_objeto_gasto og ON og.codigo_objeto_gasto::text = p.budget::json->0->'classifications'->>'objeto_gasto'
+    INNER JOIN ocds.contract c ON c.data_id = p.data_id
+    WHERE e.anio = 2020;
+

@@ -106,7 +106,7 @@ INSERT INTO ocds.award (ocid, data_id, award_id, date, amount, currency,
 );
 
 INSERT INTO ocds.contract (ocid, data_id, contract_id, award_id, date_signed, amount, currency, status, status_details,
-                               duration_in_days, start_date, end_date, budget, documents)  (
+                               duration_in_days, start_date, end_date, budget, documents, amendments)  (
 
     select distinct r.ocid,
                     r.id,
@@ -121,7 +121,8 @@ INSERT INTO ocds.contract (ocid, data_id, contract_id, award_id, date_signed, am
            (a->'period'->>'startDate')::timestamp as start_date,
            (a->'period'->>'endDate')::timestamp as end_date,
             a->'implementation'->'financialProgress'->'breakdown' as budget,
-            a->'documents' as documents
+            a->'documents' as documents,
+            a->>'amendments' as amendments
 
     from ocds.data as r
     CROSS JOIN jsonb_array_elements(data -> 'contracts') a
