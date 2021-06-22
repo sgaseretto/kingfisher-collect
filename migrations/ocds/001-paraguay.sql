@@ -252,30 +252,35 @@ CREATE OR REPLACE VIEW ocds.view_planificaciones AS
 
 
 -- vista de convocatoria
-CREATE OR REPLACE VIEW ocds.view_convocatorias AS
+CREATE VIEW ocds.view_convocatorias AS
     SELECT
        p.data_id as data_id,
-       p.budget::json->0->'classifications'->>'anio' as anho,
-       p.budget::json->0->'classifications'->>'nivel' as nivel,
-       e."descripcionNivel" as descripcion_nivel,
-       p.budget::json->0->'classifications'->>'entidad' as entidad,
-       e."descripcionEntidad" as descripcion_entidad,
+       EXTRACT(YEAR FROM p.tender_date_published) as anho,
+       par.entity_level as descripcion_nivel,
+       p.buyer_name as descripcion_entidad,
        p.tender_procurementmethoddetails as modalidad,
        p.tender_mainprocurementcategorydetails as categoria,
        p.tender_status as estado,
        p.tender_status_details as descripcion_estado,
-       a.amount as monto,
-       a.currency as moneda,
+       p.tender_amount as monto,
+       p.tender_currency as moneda,
        og."codigoObjetoGasto" as codigo_objeto_gasto,
        og."objetoGasto" as descripcion_objeto_gasto,
        p.planning_estimated_date as fecha_planificacion,
        p.tender_date_published as fecha_publicacion,
        p.electronic_auction as subasta_electronica
-
     FROM ocds.procurement p
-    LEFT JOIN ocds.award a ON a.data_id = p.data_id
-    LEFT JOIN entidad_entidad e ON e."nivel"::text = p.budget::json->0->'classifications'->>'nivel'
-                                        AND e."codigoEntidad"::text = p.budget::json->0->'classifications'->>'entidad'
-    INNER JOIN ocds.view_objeto_gasto og ON og."codigoObjetoGasto"::text = p.budget::json->0->'classifications'->>'objeto_gasto'
-    INNER JOIN ocds.contract c ON c.data_id = p.data_id
-    WHERE e.anio = 2020;
+    LEFT JOIN (
+        SELECT
+               DISTINCT(pa.party_id) party_id,
+               pa.ocid,
+               pa.name,
+               pa.roles,
+               pa.entity_level,
+               pa.entity_entity_type,
+               pa.entity_type
+        FROM ocds.parties pa
+        WHERE pa.entity_type IS NOT NULL AND pa.entity_level IS NOT NULL
+    ) as par ON par.ocid = p.ocid
+    LEFT JOIN ocds.view_objeto_gasto og ON og."codigoObjetoGasto"::text = p.budget::json->0->'classifications'->>'objeto_gasto'
+    WHERE p.tender_status_details is NOT NULL;
